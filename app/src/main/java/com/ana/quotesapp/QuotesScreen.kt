@@ -30,7 +30,8 @@ fun QuotesScreen() {
             onValueChange = { quoteText = it },
             label = { Text("Quote") },
             modifier = Modifier.fillMaxWidth(),
-            maxLines = 4
+            maxLines = 8,
+            minLines = 4
         )
 
         Spacer(modifier = Modifier.height(8.dp))
