@@ -10,11 +10,32 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.documentfile.provider.DocumentFile
+import android.content.Intent
+
+
 
 @Composable
 fun QuotesScreen() {
 
     val context = LocalContext.current
+    var folderUri by remember { mutableStateOf<Uri?>(null) }
+
+    val folderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+            folderUri = uri
+        }
+    }
 
     var quotes by remember {
         mutableStateOf(Storage.load(context))
@@ -22,6 +43,15 @@ fun QuotesScreen() {
 
     var quoteText by remember { mutableStateOf("") }
     var authorText by remember { mutableStateOf("") }
+
+    Button(
+        onClick = {
+            folderPicker.launch(null)
+                  },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Choose Storage Folder (Documents)")
+    }
 
     Column(modifier = Modifier.padding(16.dp)) {
 
