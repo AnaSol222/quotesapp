@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
 import com.ana.quotesapp.ui.theme.QuotesappTheme
 
 class MainActivity : ComponentActivity() {

@@ -15,14 +15,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.documentfile.provider.DocumentFile
 import android.content.Intent
-
+import com.google.gson.Gson
 
 
 @Composable
 fun QuotesScreen() {
 
     val context = LocalContext.current
-    var folderUri by remember { mutableStateOf<Uri?>(null) }
+    var folderUri by remember { mutableStateOf<Uri?>(null)   }
 
     val folderPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
@@ -37,23 +37,23 @@ fun QuotesScreen() {
         }
     }
 
-    var quotes by remember {
-        mutableStateOf(Storage.load(context))
-    }
-
+    var quotes by remember { mutableStateOf(emptyList<Quote>()) }
     var quoteText by remember { mutableStateOf("") }
     var authorText by remember { mutableStateOf("") }
 
-    Button(
-        onClick = {
-            folderPicker.launch(null)
-                  },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("Choose Storage Folder (Documents)")
-    }
 
-    Column(modifier = Modifier.padding(16.dp)) {
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+
+        Button(
+            onClick = {
+                folderPicker.launch(null)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Choose Storage Folder (Documents)")
+        }
+
 
         OutlinedTextField(
             value = quoteText,
@@ -77,7 +77,9 @@ fun QuotesScreen() {
 
         Button(
             onClick = {
-                if (quoteText.isNotBlank() && authorText.isNotBlank()) {
+                if (quoteText.isNotBlank() &&
+                    authorText.isNotBlank() &&
+                    folderUri != null) {
 
                     val newQuote = Quote(
                         id = System.currentTimeMillis(),
@@ -86,7 +88,12 @@ fun QuotesScreen() {
                     )
 
                     quotes = quotes + newQuote
-                    Storage.save(context, quotes)
+                    saveQuotesToChosenFolder(
+                        context,
+                        folderUri!!,
+                        quotes
+                    )
+
 
                     quoteText = ""
                     authorText = ""
@@ -99,7 +106,9 @@ fun QuotesScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn {
+        LazyColumn(
+            modifier = Modifier.weight(1f)
+        ) {
             items(quotes, key = { it.id }) { quote ->
 
                 Card(
@@ -118,8 +127,14 @@ fun QuotesScreen() {
 
                         IconButton(
                             onClick = {
-                                quotes = quotes.filter { it.id != quote.id }
-                                Storage.save(context, quotes)
+                                if (folderUri != null) {
+                                    quotes = quotes.filter { it.id != quote.id }
+                                    saveQuotesToChosenFolder(
+                                        context,
+                                        folderUri!!,
+                                        quotes
+                                    )
+                                }
                             }
                         ) {
                             Icon(
@@ -130,6 +145,24 @@ fun QuotesScreen() {
                     }
                 }
             }
+        }
+    }
+}
+fun saveQuotesToChosenFolder(
+    context: android.content.Context,
+    folderUri: Uri,
+    quotes: List<Quote>
+) {
+    val folder = DocumentFile.fromTreeUri(context, folderUri)
+        ?: return
+
+    val file = folder.findFile("quotes.json")
+        ?: folder.createFile("application/json", "quotes")
+
+    file?.let {
+        context.contentResolver.openOutputStream(it.uri, "wt")?.use { output ->
+            val json = Gson().toJson(quotes)
+            output.write(json.toByteArray())
         }
     }
 }
